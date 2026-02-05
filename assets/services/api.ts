@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:81/api';
+// Use relative URL for API calls - this allows the app to work from any origin
+// Falls back to localhost:81 if accessed directly via file://
+const API_BASE_URL = window.location.origin.includes('file://') 
+  ? 'http://localhost:81/api' 
+  : `${window.location.origin}/api`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -8,13 +12,42 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important for session-based authentication
-  timeout: 5000, // 5 second timeout
+  timeout: 30000, // 30 second timeout
 });
+
+// Request interceptor for logging
+api.interceptors.request.use(
+  (config) => {
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
+      baseURL: config.baseURL,
+      data: config.data,
+    });
+    return config;
+  },
+  (error) => {
+    console.error('[API Request Error]', error);
+    return Promise.reject(error);
+  }
+);
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+      status: response.status,
+      data: response.data,
+    });
+    return response;
+  },
   (error) => {
+    console.error('[API Error]', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data,
+    });
+    
     // Don't redirect on 401 during initial auth check - let components handle it
     if (error.response?.status === 401 && !error.config?.url?.includes('/auth/me')) {
       localStorage.removeItem('user');
