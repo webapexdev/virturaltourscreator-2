@@ -12,6 +12,7 @@
     "sourceMap": true,
     "skipLibCheck": true,
     "jsx": "react",
+    "types": ["node", "webpack-env"],
     "lib": [
       "esnext",
       "dom"
